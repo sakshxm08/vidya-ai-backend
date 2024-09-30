@@ -6,6 +6,7 @@ import mongoose from "mongoose";
 import cors from "cors";
 // Import route handlers
 import authRoutes from "./routes/auth.routes.js";
+import chatRoutes from "./routes/chat.routes.js";
 
 // import { app, server } from "./socket/socket.js";
 
@@ -29,6 +30,7 @@ app.use(express.json()); // Parse incoming requests with JSON payloads (for req.
 
 // Route handlers setup
 app.use("/api/auth", authRoutes); // Authentication routes
+app.use("/api/chat", chatRoutes); // Chat routes
 
 mongoose
   .connect(process.env.MONGODB_URI)

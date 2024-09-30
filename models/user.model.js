@@ -24,7 +24,7 @@ const user_schema = new Schema(
 );
 
 // Create User model using the defined schema
-const User = model("user", user_schema);
+const User = model("User", user_schema);
 
 // Export User model
 export default User;
