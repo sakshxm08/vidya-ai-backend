@@ -7,14 +7,30 @@ import { getAIResponse } from "../utils/generate_response.js";
 // Create a new chat
 export const createChat = async (req, res) => {
   try {
-    const { userId } = req.user; // Assuming verifyToken middleware is used
-    const threadId = uuidv4();
-    const chat = new Chat({ userId, threadId });
-    await chat.save();
+    const userId = req.user._id; // Assuming verifyToken middleware is used
 
-    res.status(201).json({ chat });
+    if (!userId) {
+      return res.status(401).json({ error: "User not authenticated" });
+    }
+
+    // Fetch the latest chat for the user
+    const latestChat = await Chat.findOne({ userId }).sort({ createdAt: -1 });
+
+    // Check if the latest chat exists and has messages
+    if (latestChat && latestChat.messages && latestChat.messages.length > 0) {
+      // Create a new chat if the latest chat has messages
+      const threadId = uuidv4();
+      const chat = new Chat({ userId, threadId });
+      await chat.save();
+
+      return res.status(201).json({ chat });
+    } else {
+      // Return the last chat with 0 messages if the latest chat has no messages
+      return res.status(200).json({ chat: latestChat });
+    }
   } catch (error) {
-    res.status(500).json({ error: "Failed to create chat" });
+    console.error(error); // Log error for debugging
+    return res.status(500).json({ error: "Failed to create chat" });
   }
 };
 
@@ -46,9 +62,6 @@ export const sendUserMessage = async (req, res) => {
   const userId = req.user._id; // Assuming user ID is added by verify_token middleware
 
   try {
-    // Send user message to the AI API and get the response
-    const aiResponse = await getAIResponse(message);
-
     let chat;
 
     // Check if a chatId exists, meaning it's an ongoing conversation
@@ -78,6 +91,11 @@ export const sendUserMessage = async (req, res) => {
       content: message,
     });
 
+    await userMessage.save();
+
+    // Send user message to the AI API and get the response
+    const aiResponse = await getAIResponse(message);
+
     // Save AI response message
     const aiMessage = new Message({
       chatId: chat._id,
@@ -85,20 +103,14 @@ export const sendUserMessage = async (req, res) => {
       content: aiResponse,
     });
 
-    // Save both messages to DB
-    await userMessage.save();
     await aiMessage.save();
-
-    // Update chat's last updated time
-    chat.updatedAt = new Date();
-    await chat.save();
 
     // Return response to client
     res.status(200).json({
       success: true,
       chatId: chat._id,
-      userMessage: userMessage.content,
-      aiResponse: aiMessage.content,
+      message: userMessage.content,
+      response: aiMessage.content,
     });
   } catch (error) {
     console.error(error);

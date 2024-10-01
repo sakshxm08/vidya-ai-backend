@@ -12,6 +12,12 @@ const chatSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    messages: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Message", // Reference to the Message model
+      },
+    ],
   },
   { timestamps: true }
 );
