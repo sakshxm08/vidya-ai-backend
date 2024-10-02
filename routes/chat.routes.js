@@ -12,7 +12,7 @@ const router = express.Router();
 
 router.post("/", verify_token, createChat); // Create a new chat
 router.get("/", verify_token, getChats); // Get all chats for the logged-in user
-router.get("/:chatId/messages", verify_token, getMessagesForChat); // Get messages for a specific chat
+router.get("/:chatId", verify_token, getMessagesForChat); // Get messages for a specific chat
 router.post("/:chatId/send-message", verify_token, sendUserMessage);
 
 export default router;

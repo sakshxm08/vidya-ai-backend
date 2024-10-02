@@ -1,11 +1,9 @@
 import axios from "axios";
-import { v4 as uuidv4 } from "uuid";
 
-export const getAIResponse = async (message) => {
+export const getAIResponse = async (chat, message) => {
   const API_URL = process.env.AI_API_URL;
 
-  // Generate a unique thread_id dynamically using uuid
-  const thread_id = uuidv4();
+  const thread_id = chat.threadId;
 
   // The body that needs to be passed to the API
   const requestBody = {

@@ -1,7 +1,9 @@
 // Import necessary modules
 import User from "../models/user.model.js";
+import Chat from "../models/chat.model.js";
 import bcrypt from "bcryptjs";
 import generate_token_and_set_cookie from "../utils/generate_token.js";
+import generate_new_chat from "../utils/generate_new_chat.js";
 
 // Signup controller
 export const signup = async (req, res) => {
@@ -16,7 +18,7 @@ export const signup = async (req, res) => {
     }
 
     // Check if the user already exists
-    const user = await User.findOne({ username });
+    let user = await User.findOne({ username });
 
     if (user) {
       return res.status(400).json({ message: "User already exists." });
@@ -33,7 +35,7 @@ export const signup = async (req, res) => {
     }?username=${username}`;
 
     // Create a new user object
-    const new_user = new User({
+    user = new User({
       f_name,
       l_name,
       username,
@@ -44,18 +46,25 @@ export const signup = async (req, res) => {
     });
 
     // Save the new user to the database
-    await new_user.save();
+    await user.save();
 
     // Generate JWT token and set it in cookies
-    generate_token_and_set_cookie(new_user._id, res);
+    generate_token_and_set_cookie(user._id, res);
 
     // Remove the password field from the user object before returning the response
-    new_user.password = undefined;
+    user.password = undefined;
+
+    const newChat = await generate_new_chat(user);
+    // Fetch the user's chats (including the newly created one if applicable)
+    const chats = await Chat.find({ userId: user._id }).populate("messages");
 
     // Send success response with user details
-    return res
-      .status(201)
-      .json({ message: "User created successfully", user: new_user });
+    return res.status(201).json({
+      message: "User created successfully",
+      user,
+      newChat,
+      chats,
+    });
   } catch (error) {
     // Log and return internal server error response
     console.log("Error in Signup Controller: " + error.message);
@@ -91,10 +100,17 @@ export const login = async (req, res) => {
     // Remove the password field from the user object before returning the response
     user.password = undefined;
 
+    const newChat = await generate_new_chat(user);
+    // Fetch the user's chats (including the newly created one if applicable)
+    const chats = await Chat.find({ userId: user._id }).populate("messages");
+
     // Send success response with user details
-    return res
-      .status(200)
-      .json({ message: "User logged in successfully", user });
+    return res.status(200).json({
+      message: "User logged in successfully",
+      user,
+      newChat,
+      chats,
+    });
   } catch (error) {
     // Log and return internal server error response
     console.log("Error in Login Controller: " + error.message);
@@ -118,13 +134,15 @@ export const logout = (req, res) => {
 };
 
 // Login on Refresh controller
-export const refresh = (req, res) => {
+export const refresh = async (req, res) => {
   try {
     // Extract user details set by the verify_token middleware
     const user = req.user;
-
+    const newChat = await generate_new_chat(user);
+    // Fetch the user's chats (including the newly created one if applicable)
+    const chats = await Chat.find({ userId: user._id }).populate("messages");
     // Send success response
-    return res.status(200).json(user);
+    return res.status(200).json({ user, newChat, chats });
   } catch (error) {
     // Log and return internal server error response
     console.log("Error in Refresh Controller: " + error.message);
